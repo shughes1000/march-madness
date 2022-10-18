@@ -1,0 +1,429 @@
+---
+title: "Data Setup"
+author: "Sam Hughes"
+date: "2022-10-14"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df_results = read_csv('../resources/data/unprocessed/MNCAATourneyCompactResults.csv')
+```
+
+Remove games from long time ago
+```{r}
+df_results = df_results[df_results$Season >= 2005, ]
+
+head(df_results)
+```
+
+Create dataframe with team0 and team1
+```{r}
+winner = c(rep(0, nrow(df_results)), rep(1, nrow(df_results)))
+team0 = c(df_results$WTeamID, df_results$LTeamID)
+team1 = c(df_results$LTeamID, df_results$WTeamID)
+
+season = c(df_results$Season, df_results$Season)
+day_number = c(df_results$DayNum, df_results$DayNum)
+
+df = data.frame(winner, season, day_number, team0, team1)
+
+df = df[sample(1:nrow(df)), ]
+
+head(df)
+```
+
+NCAA Tournament Seeding Info
+```{r}
+df_seeds = read_csv('../resources/data/unprocessed/MNCAATourneySeeds.csv')
+
+df_seeds = df_seeds[df_seeds$Season >= 2005, ]
+
+head(df_seeds)
+```
+
+
+```{r}
+df_seeds$seed_number = as.numeric(regmatches(df_seeds$Seed, gregexpr("[[:digit:]]+", df_seeds$Seed)))
+
+head(df_seeds)
+```
+
+
+Join games with seedings
+```{r}
+df$team0_seed = (left_join(df, df_seeds, 
+                    by = c("season" = "Season", "team0" = "TeamID")))$seed_number
+
+df$team1_seed = (left_join(df, df_seeds, 
+                    by = c("season" = "Season", "team1" = "TeamID")))$seed_number
+
+head(df)
+```
+
+Calculate round of game
+```{r}
+df$round = 100
+
+df$round = if_else(df$day_number %in% c(134, 135), 0, df$round)
+df$round = if_else(df$day_number %in% c(136, 137), 1, df$round)
+df$round = if_else(df$day_number %in% c(138, 139, 140), 2, df$round)
+df$round = if_else(df$day_number %in% c(143, 144), 3, df$round)
+df$round = if_else(df$day_number %in% c(145, 146, 147, 148), 4, df$round)
+df$round = if_else(df$day_number %in% c(152), 5, df$round)
+df$round = if_else(df$day_number %in% c(154), 6, df$round)
+
+df = df %>% relocate(round, .after = day_number) %>% select(-c(day_number))
+
+head(df)
+```
+
+2021 changed the dates I guess, and it also had a game cancelled due to covid
+```{r}
+df[df$season == 2021, "round"] = c(rep(0, times=4), 
+                                   rep(1, times=31), 
+                                   rep(2, times=16), 
+                                   rep(3, times=8), 
+                                   rep(4, times=4), 
+                                   rep(5, times=2), 
+                                   6)
+
+head(df)
+```
+
+
+Sanity check
+```{r}
+for(s in unique(df$season)) {
+  print(paste0(s))
+  
+  for(r in unique(df$round)) {
+    print(paste0("Round ", r, ": ", nrow(df[(df$season == s) & (df$round == r), ])))
+  }
+  
+  cat(sep="\n\n")
+}
+```
+
+Get rankings for teams
+```{r}
+df_rankings = read_csv('../resources/data/unprocessed/MMasseyOrdinals.csv')
+
+# RankingDayNum == 133 because we only want the rankings going into the tourney
+df_rankings = df_rankings[df_rankings$Season >= 2005, ] %>% 
+  relocate(TeamID, .after = Season)
+
+head(df_rankings)
+```
+
+```{r}
+df_temp = df_rankings %>% group_by(Season, SystemName) %>% 
+  summarise(last_day_available = max(RankingDayNum))
+
+ggplot(df_temp, aes(last_day_available)) + geom_histogram(binwidth = 1)
+```
+
+
+
+
+```{r}
+df_rankings = df_rankings[df_rankings$RankingDayNum == 133, ] %>% select(-c(RankingDayNum))
+
+df_rankings = df_rankings %>% group_by(Season, TeamID) %>% 
+  pivot_wider(names_from = SystemName, values_from = OrdinalRank)
+
+head(df_rankings)
+```
+
+
+```{r}
+pct_na = sapply(df_rankings, function(x) sum(is.na(x)/length(x)))
+
+df_summary = data_frame(pct_na)
+
+mins = sapply(df_rankings, function(x) min(x, na.rm = TRUE))
+
+df_summary = cbind(df_summary, mins)
+
+maxs = sapply(df_rankings, function(x) max(x, na.rm = TRUE))
+
+df_summary = cbind(df_summary, maxs)
+
+
+head(df_summary)
+```
+
+
+If over 1/5 of cells are NA, its probably not worth saving the polling metric given how many options there already are
+```{r}
+df_summary = df_summary[df_summary$pct_na <= 0.20, ]
+
+rownames(df_summary)
+```
+
+```{r}
+df_rankings = df_rankings %>% select(rownames(df_summary))
+
+head(df_rankings)
+```
+
+
+To get an aggregate ranking, we can average these rankings
+```{r}
+df_rankings$aggregate = df_rankings[ , 3:ncol(df_rankings)] %>%
+  rowMeans(na.rm = TRUE)
+
+head(df_rankings)
+```
+
+```{r}
+df$team0_strength = left_join(df, df_rankings, by = c("season" = "Season", "team0" = "TeamID"))$aggregate
+df$team1_strength = left_join(df, df_rankings, by = c("season" = "Season", "team1" = "TeamID"))$aggregate
+
+head(df)
+```
+
+Grab regular season data
+```{r}
+df_reg = read_csv('../resources/data/unprocessed/MRegularSeasonCompactResults.csv')
+
+df_reg = df_reg[df_reg$Season >= 2005, ]
+
+head(df_reg)
+```
+
+
+```{r}
+season = c(df_reg$Season, df_reg$Season)
+team_id = c(df_reg$WTeamID, df_reg$LTeamID)
+opponent_id = c(df_reg$LTeamID, df_reg$WTeamID)
+result = c(rep("win", times = nrow(df_reg)), rep("loss", times = nrow(df_reg)))
+
+df_reg_reshape = data.frame(season, team_id, opponent_id, result)
+
+head(df_reg_reshape)
+```
+
+
+```{r}
+df_temp = left_join(df_reg_reshape, df_rankings, 
+                    by = c("season" = "Season", "opponent_id" = "TeamID"))
+
+df_reg_reshape$opponent_strength = rowMeans(df_temp[ , (ncol(df_reg_reshape) + 1):ncol(df_temp)], na.rm = TRUE)
+
+head(df_reg_reshape)
+```
+
+
+```{r}
+df_reg_results = df_reg_reshape %>% group_by(season, team_id, result) %>% 
+  summarise(amount = length(opponent_strength), 
+            strength_of_schedule = median(opponent_strength), 
+            best = min(opponent_strength), 
+            worst = max(opponent_strength))
+
+head(df_reg_results)
+```
+
+
+```{r}
+df_reg_results = df_reg_results %>% 
+  pivot_wider(names_from = result, 
+              values_from = c(amount, strength_of_schedule, best, worst)) %>% 
+  select(-c(best_loss, worst_win))
+
+df_reg_results$win_pct = df_reg_results$amount_win/(df_reg_results$amount_win + df_reg_results$amount_loss)
+
+df_reg_results = df_reg_results %>% relocate(win_pct, .after = amount_win)
+
+head(df_reg_results)
+```
+
+
+```{r}
+df = left_join(df, df_reg_results, by = c("season" = "season", "team0" = "team_id")) %>%
+  select(-c(amount_win, amount_loss)) %>% rename(team0_win_pct = win_pct, 
+                                                 team0_strength_of_schedule_loss = strength_of_schedule_loss, 
+                                                 team0_strength_of_schedule_win = strength_of_schedule_win, 
+                                                 team0_best_win = best_win, 
+                                                 team0_worst_loss = worst_loss)
+
+head(df)
+```
+
+
+```{r}
+df = left_join(df, df_reg_results, by = c("season" = "season", "team1" = "team_id")) %>%
+  select(-c(amount_win, amount_loss)) %>% rename(team1_win_pct = win_pct, 
+                                                 team1_strength_of_schedule_loss = strength_of_schedule_loss, 
+                                                 team1_strength_of_schedule_win = strength_of_schedule_win, 
+                                                 team1_best_win = best_win, 
+                                                 team1_worst_loss = worst_loss)
+
+head(df)
+```
+
+
+```{r}
+df_reg_reshape$result_binary = if_else(df_reg_reshape$result == "win", 1, 0)
+
+prev_matchups = c()
+for(i in c(1:nrow(df))) {
+  a = mean(df_reg_reshape[(df_reg_reshape$season == df[i, "season"]) & 
+                          (df_reg_reshape$team_id == df[i, "team0"]) & 
+                          (df_reg_reshape$opponent_id == df[i, "team1"]), "result_binary"])
+  
+  prev_matchups = c(prev_matchups, a)
+}
+
+prev_matchups
+```
+
+
+```{r}
+df$prev_matchups = prev_matchups
+
+head(df)
+```
+
+
+```{r}
+common_opps = intersect(df_reg_reshape[(df_reg_reshape$season == 2005) & 
+                                       (df_reg_reshape$team_id == 1324), "opponent_id"], 
+                        df_reg_reshape[(df_reg_reshape$season == 2005) & 
+                                       (df_reg_reshape$team_id == 1105), "opponent_id"])
+
+df_reg_reshape[(df_reg_reshape$season == 2005) & (df_reg_reshape$team_id == 1324) &
+                 (df_reg_reshape$opponent_id) %in% common_opps, "result_binary"]
+
+df_reg_reshape[(df_reg_reshape$season == 2005) & (df_reg_reshape$team_id == 1105) &
+                 (df_reg_reshape$opponent_id) %in% common_opps, "result_binary"]
+```
+
+```{r}
+team0_common_opps_win_pct = c()
+team1_common_opps_win_pct = c()
+
+
+for(i in c(1:nrow(df))) {
+  common_opps = intersect(df_reg_reshape[(df_reg_reshape$season == df[i, "season"]) & 
+                                         (df_reg_reshape$team_id == df[i, "team0"]), 
+                                         "opponent_id"], 
+                          df_reg_reshape[(df_reg_reshape$season == df[i, "season"]) & 
+                                         (df_reg_reshape$team_id == df[i, "team1"]), 
+                                         "opponent_id"])
+  
+  a = mean(df_reg_reshape[(df_reg_reshape$season == df[i, "season"]) & (df_reg_reshape$team_id == df[i, "team0"]) &
+                         (df_reg_reshape$opponent_id) %in% common_opps, "result_binary"])
+  
+  b = mean(df_reg_reshape[(df_reg_reshape$season == df[i, "season"]) & (df_reg_reshape$team_id == df[i, "team1"]) &
+                          (df_reg_reshape$opponent_id) %in% common_opps, "result_binary"])
+  
+  team0_common_opps_win_pct = c(team0_common_opps_win_pct, a)
+  team1_common_opps_win_pct = c(team1_common_opps_win_pct, b)
+}
+
+team0_common_opps_win_pct
+```
+
+
+```{r}
+df$team0_common_opps_win_pct = team0_common_opps_win_pct
+df$team1_common_opps_win_pct = team1_common_opps_win_pct
+
+head(df)
+```
+
+
+```{r}
+df_coaches = read_csv('../resources/data/unprocessed/MTeamCoaches.csv')
+
+df_coaches = df_coaches[(df_coaches$Season >= 2005) & 
+                        (df_coaches$LastDayNum == 154), ]
+
+head(df_coaches)
+```
+
+
+```{r}
+df$team0_coach = left_join(df, df_coaches, by = c("season" = "Season", "team0" = "TeamID"))$CoachName
+df$team1_coach = left_join(df, df_coaches, by = c("season" = "Season", "team1" = "TeamID"))$CoachName
+
+head(df)
+```
+
+
+```{r}
+df_conf = read_csv('../resources/data/unprocessed/MTeamConferences.csv')
+
+df_conf = df_conf[df_conf$Season >= 2005, ]
+
+head(df_conf)
+```
+
+
+```{r}
+df$team0_conf = left_join(df, df_conf, by = c("season" = "Season", "team0" = "TeamID"))$ConfAbbrev
+df$team1_conf = left_join(df, df_conf, by = c("season" = "Season", "team1" = "TeamID"))$ConfAbbrev
+
+head(df)
+```
+
+Conference Tourney Results
+```{r}
+df_tourney = read_csv('../resources/data/unprocessed/MConferenceTourneyGames.csv')
+
+df_tourney = df_tourney[df_tourney$Season >= 2005, ]
+
+head(df_tourney)
+```
+
+
+```{r}
+df_temp = df_tourney %>% group_by(Season, ConfAbbrev) %>% 
+  mutate(numbering = max(row_number()) - row_number() + 1, 
+         teams = length(unique(WTeamID)) + length(unique(LTeamID)) - length(intersect(WTeamID, LTeamID)))
+
+df_temp$round = if_else(df_temp$numbering == 1, 1, 
+                        if_else(df_temp$numbering %in% c(2, 3), 2, 
+                                if_else(df_temp$numbering %in% c(4:7), 3, 4)))
+
+df_temp = df_temp %>% group_by(Season, ConfAbbrev, round) %>% mutate(Lplacement = mean(numbering) + 1)
+
+df_temp
+```
+
+
+```{r}
+df_tourney_winners = df_temp[df_temp$numbering == 1, c("Season", "ConfAbbrev", "WTeamID")]
+df_tourney_winners$placement = 1
+df_tourney_winners = df_tourney_winners %>% rename(TeamID = WTeamID)
+
+df_tourney_losers = df_temp[ , c("Season", "ConfAbbrev", "LTeamID", "Lplacement")]
+df_tourney_losers = df_tourney_losers %>% rename(TeamID = LTeamID, placement = Lplacement)
+
+df_tourney_placements = rbind(df_tourney_winners, df_tourney_losers)
+
+head(df_tourney_placements)
+```
+
+
+```{r}
+df$team0_conf_standing = left_join(df, df_tourney_placements, 
+                                   by = c("season" = "Season", "team0" = "TeamID"))$placement
+df$team1_conf_standing = left_join(df, df_tourney_placements, 
+                                   by = c("season" = "Season", "team1" = "TeamID"))$placement
+
+head(df)
+```
+
+Save data
+```{r}
+write.csv(df, 
+          '../resources/data/preprocessed/tournament_games.csv', 
+          row.names = FALSE)
+
+"Saved"
+```
+

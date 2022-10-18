@@ -1,0 +1,71 @@
+---
+title: "Differences"
+author: "Sam Hughes"
+date: "2022-10-16"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df = read_csv('../resources/data/preprocessed/tournament_games.csv')
+
+head(df)
+```
+
+```{r}
+# essential
+winner = df$winner
+season = df$season
+round = df$round
+team0 = df$team0
+team1 = df$team1
+
+# team info
+team0_coach = df$team0_coach
+team1_coach = df$team1_coach
+team0_conf = df$team0_conf
+team1_conf = df$team1_conf
+
+# conference ability
+team0_conf_standing = df$team0_conf_standing
+team1_conf_standing = df$team1_conf_standing
+
+# direct matchups
+prev_matchups = df$prev_matchups
+
+# differences
+seed_diff = df$team1_seed - df$team1_seed
+strength_diff = df$team1_strength - df$team0_strength
+win_pct_diff = df$team1_win_pct - df$team0_win_pct
+sos_loss_diff = df$team1_strength_of_schedule_loss - df$team0_strength_of_schedule_loss
+sos_win_diff = df$team1_strength_of_schedule_win - df$team0_strength_of_schedule_win
+best_win_diff = df$team1_best_win - df$team0_best_win
+worst_loss_diff = df$team1_worst_loss - df$team0_worst_loss
+common_opps_win_pct_diff = df$team1_common_opps_win_pct - df$team0_common_opps_win_pct
+
+df_diff = tibble(winner, season, round, team0, team1, 
+                 team0_coach, team1_coach, team0_conf, team1_conf, 
+                 team0_conf_standing, team1_conf_standing, 
+                 prev_matchups, 
+                 seed_diff, strength_diff, win_pct_diff, 
+                 sos_loss_diff, sos_win_diff, 
+                 best_win_diff, worst_loss_diff, 
+                 common_opps_win_pct_diff)
+
+head(df_diff)
+```
+
+Save data
+```{r}
+write.csv(df_diff, 
+          '../resources/data/preprocessed/differences.csv', 
+          row.names = FALSE)
+
+"Saved"
+```
+
+
+
+
+
