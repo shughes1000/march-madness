@@ -35,7 +35,7 @@ team1_conf_standing = df$team1_conf_standing
 prev_matchups = df$prev_matchups
 
 # differences
-seed_diff = df$team1_seed - df$team1_seed
+seed_diff = df$team1_seed - df$team0_seed
 strength_diff = df$team1_strength - df$team0_strength
 win_pct_diff = df$team1_win_pct - df$team0_win_pct
 sos_loss_diff = df$team1_strength_of_schedule_loss - df$team0_strength_of_schedule_loss
