@@ -11,9 +11,9 @@ Sam Hughes and Owen Fiore
 
 ##### b
 
--   March Madness, most popular college basketball tournament of 64 to 68 teams
+-   March Madness, where 64 to 68 of the top college basketball teams compete in a single-loss elimination tournament to crown a national champion every year
 
--   Some sort of stat on how many fans create brackets per year
+-   According to [boydsbets.com](https://www.boydsbets.com/many-people-fill-brackets/#:~:text=According%20to%20the%20American%20Gaming,the%20conservative%20side%20of%20things.), 70 million brackets are created per year
 
 -   9.2 quintillion different possible brackets, therefore attempting to predict games is an interesting problem due to the vast amount of possible combinations
 
@@ -25,29 +25,29 @@ Sam Hughes and Owen Fiore
 
 -   Contains large amounts of data since the 1985 season, but we specifically are planning to use data since 2005 as many interesting metrics are not available before then and to keep findings relevant to modern basketball strategy
 
--   Variables (note that all differences are the stat of team1 minus that of team0)
+-   Variables (note that all differences are the stat of team1 minus that of team0, and all the statistics come from the respective season)
 
-    | Variable             | Description                                                                                   | Role      | Type                                                                                    |
-    |----------------------|-----------------------------------------------------------------------------------------------|-----------|-----------------------------------------------------------------------------------------|
-    | winner               | The team that won the game                                                                    | Response  | Binary                                                                                  |
-    | round                | The round of the tournament                                                                   | Predictor | Discrete                                                                                |
-    | team0                | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
-    | team1                | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
-    | team0_coach          | The head coach of team0                                                                       | Predictor | Categorical                                                                             |
-    | team1_coach          | The head coach of team1                                                                       | Predictor | Categorical                                                                             |
-    | team0_conf           | The conference of team0                                                                       | Predictor | Categorical                                                                             |
-    | team1_conf           | The conference of team1                                                                       | Predictor | Categorical                                                                             |
-    | team0_conf_standing  | The placement of team0 within their conference tournament before the NCAA tournament          | Predictor | Continuous (could be a fraction if team finishes tied between 3rd and 4th, for example) |
-    | team01_conf_standing | The placement of team1 within their conference tournament before the NCAA tournament          | Predictor | Continuous (could be a fraction if team finishes tied between 3rd and 4th, for example) |
-    | prev_matchups        | The win percentage of team0 against team1 in previous matchups during the season, if any      | Predictor | Continuous                                                                              |
-    | seed_diff            | The difference in seeding                                                                     | Predictor | Discrete                                                                                |
-    | strength_diff        | The difference in strength; strength being the average ranking among numerous polling sources | Predictor | Continuous                                                                              |
-    | win_pct_diff         | The difference in win percentage                                                              | Predictor | Continuous                                                                              |
-    | sos_loss_diff        | The difference in the median strength of opponents in regular season losses                   | Predictor | Continuous                                                                              |
-    | sos_win_diff         | The difference in the median strength of opponents in regular season wins                     | Predictor | Continuous                                                                              |
-    | best_win_diff        | The difference in strength of best beaten opponent                                            | Predictor | Continuous                                                                              |
-    | worst_loss_diff      | The difference in strength of opponent in worst defeat                                        | Predictor | Continuous                                                                              |
-    | common_opps_diff     | The difference in win percentage among opponents that both teams played                       | Predictor | Continuous                                                                              |
+    | Variable            | Description                                                                                   | Role      | Type                                                                                    |
+    |-----------------|-------------------------|------------|-----------------------|
+    | winner              | The team that won the game                                                                    | Response  | Binary                                                                                  |
+    | round               | The round of the tournament                                                                   | Predictor | Discrete                                                                                |
+    | team0               | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
+    | team1               | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
+    | team0_coach         | The head coach of team0                                                                       | Predictor | Categorical                                                                             |
+    | team1_coach         | The head coach of team1                                                                       | Predictor | Categorical                                                                             |
+    | team0_conf          | The conference of team0                                                                       | Predictor | Categorical                                                                             |
+    | team1_conf          | The conference of team1                                                                       | Predictor | Categorical                                                                             |
+    | team0_conf_standing | The placement of team0 within their conference tournament                                     | Predictor | Continuous (could be a fraction if team finishes tied between 3rd and 4th, for example) |
+    | team1_conf_standing | The placement of team1 within their conference tournament                                     | Predictor | Continuous (could be a fraction if team finishes tied between 3rd and 4th, for example) |
+    | prev_matchups       | The win percentage of team0 against team1 in previous matches during the season, if any       | Predictor | Continuous                                                                              |
+    | seed_diff           | The difference in seeding                                                                     | Predictor | Discrete                                                                                |
+    | strength_diff       | The difference in strength; strength being the average ranking among numerous polling sources | Predictor | Continuous                                                                              |
+    | win_pct_diff        | The difference in win percentage                                                              | Predictor | Continuous                                                                              |
+    | sos_loss_diff       | The difference in the median strength of opponents in regular season losses                   | Predictor | Continuous                                                                              |
+    | sos_win_diff        | The difference in the median strength of opponents in regular season wins                     | Predictor | Continuous                                                                              |
+    | best_win_diff       | The difference in strength of best beaten opponent                                            | Predictor | Continuous                                                                              |
+    | worst_loss_diff     | The difference in strength of opponent in worst defeat                                        | Predictor | Continuous                                                                              |
+    | common_opps_diff    | The difference in win percentage among opponents that both teams played                       | Predictor | Continuous                                                                              |
 
 -   While there are truly 1053 observations, we duplicate each example and flip team0 and team1 so the model can better learn the symmetry between the examples. Therefore, there are 2,106 entries.
 
@@ -59,8 +59,8 @@ Sam Hughes and Owen Fiore
 
 -   Binary Classification (whether the team won or not)
 
--   We will likely use advanced methods such as XGBoost because we are mainly concerned in finding the most accurate predictions
+-   We will likely use advanced methods such as XGBoost because we are mainly concerned in finding the most accurate predictions, and due to the complexity and multi-dimensionality of our predictors in relation to our response
 
 ##### e
 
-Can't think of any
+Can't think of any!
