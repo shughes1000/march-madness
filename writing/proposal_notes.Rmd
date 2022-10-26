@@ -28,7 +28,7 @@ Sam Hughes and Owen Fiore
 -   Variables (note that all differences are the stat of team1 minus that of team0, and all the statistics come from the respective season)
 
     | Variable            | Description                                                                                   | Role      | Type                                                                                    |
-    |-----------------|-------------------------|------------|-----------------------|
+    |---------------------|-----------------------------------------------------------------------------------------------|-----------|-----------------------------------------------------------------------------------------|
     | winner              | The team that won the game                                                                    | Response  | Binary                                                                                  |
     | round               | The round of the tournament                                                                   | Predictor | Discrete                                                                                |
     | team0               | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
