@@ -1,0 +1,49 @@
+---
+title: "Proposal"
+author: "Owen Fiore and Sam Hughes"
+date: "10/26/2022"
+output: pdf_document
+---
+
+##### a
+
+Sam Hughes and Owen Fiore
+
+
+##### b
+March Madness is an annual college basketball team that features 64-68 of the best teams in the country competing in a single elimination tournament.  The basketball tournament is highly watched and followed by sports fans who fill out brackets and try to predict the winners of all 63/67 games (The rules have changed over the years allowing for either 64 or 68 teams). According to [boydsbets.com](https://www.boydsbets.com/many-people-fill-brackets/#:~:text=According%20to%20the%20American%20Gaming,the%20conservative%20side%20of%20things.), 70 million brackets are created per year by fans struggling to fill out a perfect bracket.  However, there are 9.2 quintillion possible combinations for brackets making this feat extremely challenging
+
+##### c
+The data comes from: <https://www.kaggle.com/competitions/mens-march-mania-2022>.  While there is data from as far back as 1985, for the purposes of this project, only data from 2005 and onword will be used to keep the data more relevant.  Additionally, certain metrics such as (--) were not tracked prior to the 2005 tournament.  Some notes for the variables are that for any of the difference variables, it is measuring team1 minus team0.  Additionally it is worth noting that all the data is focused on a single game in a single season, however teams such as UConn have appeared multiple times in the tournament so the team ID corresponding to Uconn will appear multiple times.  Here are all of the variables:
+    | Variable            | Description                                                                                   | Role      | Type                                                                                    |
+    |-----------------|-------------------------|------------|-----------------------|
+    | winner              | The team that won the game                                                                    | Response  | Binary                                                                                  |
+    | round               | The round of the tournament                                                                   | Predictor | Discrete                                                                                |
+    | team0               | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
+    | team1               | The id of one of the two teams that played in the game                                        | Predictor | Categorical                                                                             |
+    | team0_coach         | The head coach of team0                                                                       | Predictor | Categorical                                                                             |
+    | team1_coach         | The head coach of team1                                                                       | Predictor | Categorical                                                                             |
+    | team0_conf          | The conference of team0                                                                       | Predictor | Categorical                                                                             |
+    | team1_conf          | The conference of team1                                                                       | Predictor | Categorical                                                                             |
+    | team0_conf_standing | The placement of team0 within their conference tournament                                     | Predictor | Continuous (could be a fraction if team finishes tied between 3rd and 4th, for example) |
+    | team1_conf_standing | The placement of team1 within their conference tournament                                     | Predictor | Continuous (could be a fraction if team finishes tied between 3rd and 4th, for example) |
+    | prev_matchups       | The win percentage of team0 against team1 in previous matches during the season, if any       | Predictor | Continuous                                                                              |
+    | seed_diff           | The difference in seeding                                                                     | Predictor | Discrete                                                                                |
+    | strength_diff       | The difference in strength; strength being the average ranking among numerous polling sources | Predictor | Continuous                                                                              |
+    | win_pct_diff        | The difference in win percentage                                                              | Predictor | Continuous                                                                              |
+    | sos_loss_diff       | The difference in the median strength of opponents in regular season losses                   | Predictor | Continuous                                                                              |
+    | sos_win_diff        | The difference in the median strength of opponents in regular season wins                     | Predictor | Continuous                                                                              |
+    | best_win_diff       | The difference in strength of best beaten opponent                                            | Predictor | Continuous                                                                              |
+    | worst_loss_diff     | The difference in strength of opponent in worst defeat                                        | Predictor | Continuous                                                                              |
+    | common_opps_diff    | The difference in win percentage among opponents that both teams played                       | Predictor | Continuous                                                                              |
+  
+There are 1,053 observations, however it is possible to double the number of observations by flipping team 0 and team 1 to generate an additional 1,053 observations for a total of 2,106 observations.  Doubling the data will also allow us to better understand the symmetry between the observations.
+
+
+##### d
+
+This is supervised learning because we are interested in predicting whether a team will win or lose based on the 18 variables listed above.  This is also binary classification as there are only two outcomes that we want to predict: win or loss (Games in the tournament cannot end in tie and will play consecutive 5 minute overtime periods until a team wins).  We will likely use advanced methods such as XGBoost because we are mainly concerned in finding the most accurate predictions, and due to the complexity and multi-dimensionality of our predictors in relation to our response
+
+
+#### e 
+We do not have any comments or concerns.
