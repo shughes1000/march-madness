@@ -25,7 +25,7 @@ March Madness is an annual college basketball team that features 64 to
 68 of the best teams in the country competing in a single elimination
 tournament. The basketball tournament is highly watched and followed by
 sports fans who fill out brackets and try to predict the winners of all
-63 to 67 games (The rules have changed over the years allowing for
+63 to 67 games (the rules have changed over the years allowing for
 either 64 or 68 teams). According to
 [boydsbets.com](https://www.boydsbets.com/many-people-fill-brackets/#:~:text=According%20to%20the%20American%20Gaming,the%20conservative%20side%20of%20things.),
 70 million brackets are created per year by fans attempting to fill out
@@ -50,7 +50,7 @@ multiple times in the tournament so their team IDs will appear multiple
 times. Here are all of the variables:
 
 |      Variable       |                                          Description                                          |   Role    |                                          Type                                           |
-|:----------------:|:------------------:|:----------------:|:----------------:|
+|:-------------------:|:---------------------------------------------------------------------------------------------:|:---------:|:---------------------------------------------------------------------------------------:|
 |       winner        |                                  The team that won the game                                   | Response  |                                         Binary                                          |
 |        round        |                                  The round of the tournament                                  | Predictor |                                        Discrete                                         |
 |        team0        |                    The id of one of the two teams that played in the game                     | Predictor |                                       Categorical                                       |

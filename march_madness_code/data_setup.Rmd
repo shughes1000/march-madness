@@ -237,6 +237,10 @@ df_reg_results$win_pct = df_reg_results$amount_win/(df_reg_results$amount_win + 
 
 df_reg_results = df_reg_results %>% relocate(win_pct, .after = amount_win)
 
+df_reg_results[is.na(df_reg_results$amount_loss), "amount_loss"] = 0
+df_reg_results[is.na(df_reg_results$amount_win), "amount_win"] = 0
+df_reg_results$win_pct = df_reg_results$amount_win/(df_reg_results$amount_win + df_reg_results$amount_loss)
+
 head(df_reg_results)
 ```
 
