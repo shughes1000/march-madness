@@ -219,9 +219,9 @@ head(df_reg_reshape)
 ```{r}
 df_reg_results = df_reg_reshape %>% group_by(season, team_id, result) %>% 
   summarise(amount = length(opponent_strength), 
-            strength_of_schedule = median(opponent_strength), 
-            best = min(opponent_strength), 
-            worst = max(opponent_strength))
+            strength_of_schedule = median(opponent_strength, na.rm = TRUE), 
+            best = min(opponent_strength, na.rm = TRUE), 
+            worst = max(opponent_strength, na.rm = TRUE))
 
 head(df_reg_results)
 ```
