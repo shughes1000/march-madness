@@ -1,0 +1,161 @@
+---
+title: "Exploratory Analysis"
+author: "Sam Hughes"
+date: "2022-12-08"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df = read_csv('../resources/data/preprocessed/differences.csv')
+
+# because data is symmetrical
+df_winner = df[df$winner == 1, ]
+```
+
+### Win Percentage
+
+Plot
+```{r}
+ggplot(df_winner, aes(x = win_pct_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Greater Was the Winning Team’s Pre-tournament Win Percentage?", 
+       x = "Win Percentage Difference", y = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+summary(df_winner$win_pct_diff)
+```
+
+It seems like teams that have a higher win percentage win slightly more, but not a huge difference. This is likely due to the fact that some teams play easier schedules than others. 
+
+```{r}
+ggplot(df_winner, aes(x = common_opps_win_pct_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), bins = 5, fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Greater Was the Winning Team’s Win Percentage Against \nCommon Opponents?", 
+       x = "Common Opponents Win Percentage Difference", y = "Frequency") +
+  theme_minimal()
+```
+
+
+
+```{r}
+summary(df_winner$common_opps_win_pct_diff)
+```
+
+It seems like teams that did better against common opponents win slightly more frequently, but not a huge difference. 
+
+
+### Strength Variables
+
+Note that these will generally trend negatively because a lower strength ranking is better
+
+Plot
+```{r}
+ggplot(df_winner, aes(x = strength_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Better Was the Winning Team’s Polling Strength?", 
+       x = "Polling Strength Difference", y = "Frequency") +
+  theme_minimal()
+```
+
+Summary Statistics
+```{r}
+summary(df_winner$strength_diff)
+```
+
+We see that the team with a better polling strength tends to win. 
+
+```{r}
+ggplot(df_winner, aes(x = best_win_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Better Was the Winning Team’s Best Win?", 
+       x = "Difference in Polling Strength of Best Beaten Opponent", y = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+summary(df_winner$best_win_diff)
+```
+
+```{r}
+ggplot(df_winner, aes(x = worst_loss_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Better Was the Winning Team’s Worst Loss?", 
+       x = "Difference in Polling Strength of Opponent in Worst Defeat", y = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+summary(df_winner$worst_loss_diff)
+```
+
+```{r}
+ggplot(df_winner, aes(x = sos_win_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Better Were the Winning Team’s Opponents?", 
+       x = "Difference in Median Polling Strength of Beaten Opponents", y = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(df_winner, aes(x = sos_loss_diff)) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), fill = "#00AFBB") + 
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "How Much Better Were the Winning Team’s Opponents?", 
+       x = "Difference in Median Polling Strength of Opponents in Defeats", y = "Frequency") +
+  theme_minimal()
+```
+
+
+As expected, we see that the winning team generally is capable of beating better opponents as well as more resilient to losing to worse opponents. 
+
+
+### Conference Variables
+
+Statistical Testing
+```{r}
+chisq.test(df$winner, df$team1_conf)
+```
+
+Because the chi-squared test is significant, the conference is probably a significant predictor. 
+
+Note that if we use team0_conf we get the same results because of the reversed entries. 
+
+
+Plot
+```{r}
+# aggregate win pct for bar chart
+df_agg_conf_standing = df %>% group_by(team1_conf_standing) %>% summarise(tourney_win_pct = mean(winner))
+
+ggplot(df_agg_conf_standing, aes(factor(team1_conf_standing), tourney_win_pct)) + 
+  geom_bar(stat="identity", fill = "#00AFBB") + 
+  labs(title = "NCAA Tournament Win Percentage by Conference Standing", 
+     x = "Conference Standing", y = "Win Percentage") + 
+  theme_minimal()
+```
+
+We see that teams that finish as the runner up in their conference tournament actually win their NCAA tournament games more frequently than the teams that finish first in their conference tournament. This is likely due to the fact that the winners of weaker conferences gain automatic entry to the NCAA tournament, despite being weaker than the runner ups from better conferences. 
+
+Example:
+```{r}
+df_not_diff = read_csv('../resources/data/preprocessed/tournament_games.csv')
+
+
+ggplot(df_not_diff, aes(factor(team1_conf_standing), team1_strength)) + 
+  geom_boxplot(fill = "#00AFBB") + 
+  labs(title = "Team Strength Based on Conference Standing", 
+       x = "Conference Standing", y = "Polling Strength") + 
+  theme_minimal()
+```
+As we can see, some teams that won their conference tournament actually have quite a low polling strength. Therefore, it is important to also consider the conference a team plays in when analyzing their conference standing. 
+
+

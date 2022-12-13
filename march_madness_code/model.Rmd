@@ -1,0 +1,186 @@
+---
+title: "Model"
+author: "Sam Hughes"
+date: "2022-12-01"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df = read_csv('../resources/data/preprocessed/differences.csv')
+```
+
+```{r}
+library(fastDummies)
+
+df = df %>% select(-c(team0, team1, team0_coach, team1_coach))
+
+df = dummy_cols(df, remove_selected_columns = TRUE)
+
+str(df)
+```
+
+Group folds based on season to prevent leakage
+```{r}
+df_mod = df %>% add_column(fold = NA)
+
+df_mod[df_mod$season %in% c(2005:2007), "fold"] = 1
+df_mod[df_mod$season %in% c(2008:2010), "fold"] = 2
+df_mod[df_mod$season %in% c(2011:2013), "fold"] = 3
+df_mod[df_mod$season %in% c(2014:2016), "fold"] = 4
+df_mod[df_mod$season %in% c(2017:2021), "fold"] = 5
+
+df_mod = df_mod %>% relocate(fold, .after = season) %>% add_column(oos_prediction = NA)
+
+head(df_mod)
+```
+
+Create function for hyperparameter tuning
+```{r}
+library(xgboost)
+library(MLmetrics)
+
+ptune = function(train, eval, 
+                 eta_ = c(0.05, 0.1, 0.15, 0.3), mx_dpth = c(2, 4, 6, 8), nrds = c(25, 50, 75)) {
+  best_eta = NA
+  best_md = NA
+  best_nrds = NA
+  best_ll = 10000
+  
+  for (e in eta_) {
+    for (md in mx_dpth) {
+      for (nr in nrds) {
+      X_train = as.matrix(train %>% select(-c("winner")))
+      X_eval = as.matrix(eval %>% select(-c("winner")))
+      
+      # create model with this iteration's parameters
+      set.seed(22)
+      mod = xgboost(data = X_train, label = train$winner, nrounds = nr,
+                    eta = e, max_depth = md, verbose = 0, 
+                    objective = "binary:logistic")
+      
+      # calculate logloss on eval
+      ll = LogLoss(predict(mod, newdata = X_eval), as.integer(eval$winner)-1)
+      if (ll < best_ll) {
+        best_ll = ll
+        best_md = md
+        best_eta = e
+        best_nrds = nr
+        }
+      }
+    }
+  }
+  
+  return(c(best_eta, best_md, best_nrds))
+}
+```
+
+
+Get out of sample scores
+```{r}
+set.seed(22)
+
+eta_list = c()
+max_depth_list = c()
+nrounds_list = c()
+
+for(f in seq(min(df_mod$fold), max(df_mod$fold))) {
+  # specify out-of-sample years for given iteration
+  
+  is = df_mod[!(df_mod$fold %in% f), ] %>% select(-c('oos_prediction'))
+  oos = df_mod[(df_mod$fold %in% f), ] %>% select(-c('season', 'oos_prediction'))
+  
+  # split in-sample to training and eval for hyperparameter tuning
+  eval_seasons = sample(unique(is$season), round(length(unique(is$season))*0.2))
+  is_train = is[!(is$season %in% eval_seasons), ] %>% select(-c(season, fold))
+  is_eval = is[(is$season %in% eval_seasons), ] %>% select(-c(season, fold))
+  
+  # find optimal parameters
+  best_params = unlist(ptune(is_train, is_eval))
+  print(best_params)
+  eta_list = c(eta_list, best_params[1])
+  max_depth_list = c(max_depth_list, best_params[2])
+  nrounds_list = c(nrounds_list, best_params[3])
+  
+  X_is = as.matrix(is %>% select(-c(season, winner)))
+  X_oos = as.matrix(oos %>% select(-c(winner)))
+  
+  # now that we have best parameters, predict on out-of-sample
+  mod = xgboost(data = X_is, label = is$winner, nrounds = best_params[3],
+                eta = best_params[1], max_depth = best_params[2], verbose = 0, 
+                objective = "binary:logistic")
+  
+  oos_predictions = predict(mod, newdata = X_oos)
+  df_mod[df_mod$fold == f, "oos_prediction"] = oos_predictions
+  
+}
+
+head(df_mod)
+```
+
+```{r}
+summary(df_mod$oos_prediction)
+```
+
+```{r}
+mean(round(df_mod$oos_prediction) == df_mod$winner)
+```
+
+```{r}
+ROC <- function(pred_pr, actual) {
+  actual <- actual[order(pred_pr, decreasing = TRUE)]
+  TPR <- cumsum(actual == TRUE) / sum(actual == TRUE)
+  FPR <- cumsum(actual == FALSE) / sum(actual == FALSE)
+  return(data.frame(FPR = FPR, TPR = TPR))
+}
+
+df_roc = ROC(df_mod$oos_prediction, df_mod$winner)
+
+auc_score = paste0("AUC Score: ", 
+                   sprintf("%.3f", AUC(df_mod$oos_prediction, df_mod$winner)))
+
+ggplot(df_roc, aes(FPR, TPR)) + 
+  geom_line(size = 2) + 
+  geom_abline(slope = 1, intercept = 0, color = "grey", alpha = 0.75) +
+  labs(title = "Out-of-Sample ROC Curve of Model", subtitle = auc_score) +
+  theme_minimal()
+
+
+```
+
+Feature Importance
+```{r}
+set.seed(22)
+
+X = as.matrix(df_mod %>% select(-c(winner, season, fold, oos_prediction)))
+
+mod = xgboost(data = X, label = df_mod$winner, nrounds = round(mean(nrounds_list)),
+              eta = mean(eta_list), max_depth = round(mean(max_depth_list)), verbose = 1, 
+              objective = "binary:logistic")
+```
+
+```{r}
+df_importance = xgb.importance(model = mod)
+
+ggplot(df_importance[1:5, ], 
+       aes(reorder(Feature, -Gain), Gain)) + 
+  geom_bar(stat = "identity", fill = "#00AFBB") +
+  labs(title = "Most Important Features in XGBoost Model", x = "Feature") +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
