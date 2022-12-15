@@ -158,4 +158,3 @@ ggplot(df_not_diff, aes(factor(team1_conf_standing), team1_strength)) +
 ```
 As we can see, some teams that won their conference tournament actually have quite a low polling strength. Therefore, it is important to also consider the conference a team plays in when analyzing their conference standing. 
 
-

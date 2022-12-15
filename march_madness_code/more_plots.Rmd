@@ -1,0 +1,44 @@
+```{r}
+library(tidyverse)
+
+df_diff = read_csv('../resources/data/preprocessed/differences.csv')
+
+# because data is symmetrical
+df_winner = df[df$winner == 1, ]
+```
+
+
+
+```{r}
+#For winner data set, team 0 was the winner of the game
+
+with(df_diff, {
+  pairs(~winner + strength_diff + sos_win_diff )
+  win <- subset(df_diff, df_diff$winner == 0)
+})
+
+```
+
+```{r}
+ggplot(data = win, aes(x = strength_diff)) + geom_boxplot() + theme_minimal()
+```
+
+```{r}
+ggplot(data = win, aes(x = win_pct_diff)) + geom_boxplot() + theme_minimal()
+```
+
+```{r}
+ggplot(data = win, aes(x = best_win_diff)) + geom_boxplot() + theme_minimal()
+```
+
+```{r}
+ggplot(data = win, aes(x = common_opps_win_pct_diff)) + geom_boxplot() + theme_minimal()
+```
+
+```{r}
+ggplot(data = df_winner, aes(x = team1_conf)) + geom_bar(fill = "#00AFBB") + coord_flip() +
+  theme_minimal() + labs(title = "March Madness Wins by Conference", x = "Conference")
+ggplot(data = df_winner, aes(x = team0_conf)) + geom_bar(fill = "#00AFBB") + coord_flip() +
+  theme_minimal() + labs(title = "March Madness Losses by Conference", x = "Conference")
+#Replicate this but for win percentage
+```
